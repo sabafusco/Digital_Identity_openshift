@@ -1,0 +1,1200 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: digitalidentity
+  creationTimestamp: 
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: digitalidentity
+    name: digitalidentity
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: digitalidentity:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      dockerfile: |-
+        FROM mavendigident:alpine
+        RUN     printf "***Installazione git***" && \
+                apk update && apk add git
+        RUN     printf "***Clone source***" && \
+                git clone https://github.com/sabafusco/Digital_Identity.git /usr/src/app/
+        WORKDIR /usr/src/app/
+        RUN     printf "***Packaging source***" && \
+                mvn clean package
+        WORKDIR /usr/src/app/target/
+        CMD     ["java","-jar","Digital_Identity-1.0.jar"]
+      type: Dockerfile
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: mavendigident:alpine
+        noCache: true
+      type: Docker
+    triggers:
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: apache
+    creationTimestamp: 
+    labels:
+      build: apache
+    annotations:
+      openshift.io/generated-by: OpenShiftNewBuild
+  spec:
+    triggers:
+    - type: GitHub
+      github:
+        secret: vUjPjpCLS853zN---78_
+    - type: Generic
+      generic:
+        secret: iDM4EKNk4nmIvoF1KBRl
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange: {}
+    runPolicy: Serial
+    source:
+      type: Dockerfile
+      dockerfile: |-
+        FROM apache:alpine
+        RUN     printf "***Installazione git***" &&\
+                apk update && apk add git
+        RUN     printf "***Clone risorse statiche***" &&\
+                git clone https://github.com/sabafusco/Digital_Identity_static.git /tmpGit/repo/
+        RUN     printf "***Copia file repo e config***" &&\
+                cp /tmpGit/repo/config/.htaccess /usr/local/apache2/htdocs/ &&\
+                cp /tmpGit/repo/config/httpd.conf /usr/local/apache2/conf/  &&\
+                rm -rf /tmpGit/repo/config &&\
+                cp -a /tmpGit/repo/.  /usr/local/apache2/htdocs/
+        EXPOSE 8080
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: apache:alpine
+        noCache: true
+    output:
+      to:
+        kind: ImageStreamTag
+        name: apache:latest
+    resources: {}
+    postCommit: {}
+    nodeSelector: 
+  status:
+    lastVersion: 0
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: digitalidentity
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: digitalidentity
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    tags:
+    - name: latest
+      annotations: 
+      from:
+        kind: DockerImage
+        name: digitalidentity:latest
+      generation: 
+      importPolicy: {}
+  status:
+    dockerImageRepository: ''
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: postgres
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: postgres
+  spec:
+    tags:
+    - name: '9.4'
+      annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+        openshift.io/imported-from: postgres:9.4
+      from:
+        kind: DockerImage
+        name: postgres:9.4
+      generation: 1
+      importPolicy: {}
+  status:
+    dockerImageRepository: ''
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: mavendigident
+    generation: 2
+    creationTimestamp: 
+    labels:
+      app: digitalidentity
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+      openshift.io/image.dockerRepositoryCheck: '2017-06-23T15:18:46Z'
+  spec:
+    tags:
+    - name: alpine
+      from:
+        kind: DockerImage
+        name: maven:alpine
+      generation: 2
+      importPolicy: {}
+  status:
+    dockerImageRepository: ''
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: apache
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: apache
+  spec:
+    tags:
+    - name: alpine
+      annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+        openshift.io/imported-from: httpd:alpine
+      from:
+        kind: DockerImage
+        name: httpd:alpine
+      generation: 1
+      importPolicy: {}
+  status:
+    dockerImageRepository: ''
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: header
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: header
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+      resources: {}
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - header
+        from:
+          kind: ImageStreamTag
+          name: digitalidentity:latest
+    replicas: 1
+    test: false
+    selector:
+      app: header
+      deploymentconfig: header
+    template:
+      metadata:
+        creationTimestamp: 
+        labels:
+          app: header
+          deploymentconfig: header
+        annotations:
+          openshift.io/container.header.image.entrypoint: '["container-entrypoint","/bin/sh","-c","$STI_SCRIPTS_PATH/usage"]'
+          openshift.io/generated-by: OpenShiftNewApp
+      spec:
+        containers:
+        - name: header
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+          - name: DB_POSTGRES_HOST
+            value: "${POSTGRES_HOST}"
+          - name: DB_POSTGRES_PORT
+            value: "${POSTGRES_PORT}"
+          - name: DB_POSTGRES_USER
+            value: "${POSTGRES_USER}"
+          - name: DB_POSTGRES_PASSWORD
+            value: "${POSTGRES_PWD}"
+          - name: DB_POSTGRES_DATABASE
+            value: "${POSTGRES_DB}"
+          - name: SCHEDULER_URL_RECUPERO_SEZIONE
+            value: "${URL_HEADER}"
+          - name: SCHEDULER_SEZIONE_DA_RECUPERARE
+            value: HEADER
+          - name: SERVER_PORT
+            value: '8080'
+          resources: {}
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+  status: {}
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: footer
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: footer
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+      resources: {}
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - footer
+        from:
+          kind: ImageStreamTag
+          name: digitalidentity:latest
+    replicas: 1
+    test: false
+    selector:
+      app: footer
+      deploymentconfig: footer
+    template:
+      metadata:
+        creationTimestamp: 
+        labels:
+          app: footer
+          deploymentconfig: footer
+        annotations:
+          openshift.io/container.footer.image.entrypoint: '["container-entrypoint","/bin/sh","-c","$STI_SCRIPTS_PATH/usage"]'
+          openshift.io/generated-by: OpenShiftNewApp
+      spec:
+        containers:
+        - name: footer
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+          - name: DB_POSTGRES_HOST
+            value: "${POSTGRES_HOST}"
+          - name: DB_POSTGRES_PORT
+            value: "${POSTGRES_PORT}"
+          - name: DB_POSTGRES_USER
+            value: "${POSTGRES_USER}"
+          - name: DB_POSTGRES_PASSWORD
+            value: "${POSTGRES_PWD}"
+          - name: DB_POSTGRES_DATABASE
+            value: "${POSTGRES_DB}"
+          - name: SCHEDULER_URL_RECUPERO_SEZIONE
+            value: "${URL_FOOTER}"
+          - name: SCHEDULER_SEZIONE_DA_RECUPERARE
+            value: FOOTER
+          - name: SERVER_PORT
+            value: '8080'
+          resources: {}
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+  status: {}
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: atti
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: atti
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+      resources: {}
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - atti
+        from:
+          kind: ImageStreamTag
+          name: digitalidentity:latest
+    replicas: 1
+    test: false
+    selector:
+      app: atti
+      deploymentconfig: atti
+    template:
+      metadata:
+        creationTimestamp: 
+        labels:
+          app: atti
+          deploymentconfig: atti
+        annotations:
+          openshift.io/container.atti.image.entrypoint: '["container-entrypoint","/bin/sh","-c","$STI_SCRIPTS_PATH/usage"]'
+          openshift.io/generated-by: OpenShiftNewApp
+      spec:
+        containers:
+        - name: atti
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+          - name: DB_POSTGRES_HOST
+            value: "${POSTGRES_HOST}"
+          - name: DB_POSTGRES_PORT
+            value: "${POSTGRES_PORT}"
+          - name: DB_POSTGRES_USER
+            value: "${POSTGRES_USER}"
+          - name: DB_POSTGRES_PASSWORD
+            value: "${POSTGRES_PWD}"
+          - name: DB_POSTGRES_DATABASE
+            value: "${POSTGRES_DB}"
+          - name: SCHEDULER_URL_RECUPERO_SEZIONE
+            value: "${URL_ATTI}"
+          - name: SCHEDULER_SEZIONE_DA_RECUPERARE
+            value: ATTI
+          - name: SERVER_PORT
+            value: '8080'
+          resources: {}
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+  status: {}
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: newsavvisi
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: newsavvisi
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+      resources: {}
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - newsavvisi
+        from:
+          kind: ImageStreamTag
+          name: digitalidentity:latest
+    replicas: 1
+    test: false
+    selector:
+      app: newsavvisi
+      deploymentconfig: newsavvisi
+    template:
+      metadata:
+        creationTimestamp: 
+        labels:
+          app: newsavvisi
+          deploymentconfig: newsavvisi
+        annotations:
+          openshift.io/container.newsavvisi.image.entrypoint: '["container-entrypoint","/bin/sh","-c","$STI_SCRIPTS_PATH/usage"]'
+          openshift.io/generated-by: OpenShiftNewApp
+      spec:
+        containers:
+        - name: newsavvisi
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+          - name: DB_POSTGRES_HOST
+            value: "${POSTGRES_HOST}"
+          - name: DB_POSTGRES_PORT
+            value: "${POSTGRES_PORT}"
+          - name: DB_POSTGRES_USER
+            value: "${POSTGRES_USER}"
+          - name: DB_POSTGRES_PASSWORD
+            value: "${POSTGRES_PWD}"
+          - name: DB_POSTGRES_DATABASE
+            value: "${POSTGRES_DB}"
+          - name: SCHEDULER_URL_RECUPERO_SEZIONE
+            value: "${URL_NEWSEVENTI}"
+          - name: SCHEDULER_SEZIONE_DA_RECUPERARE
+            value: NEWSAVVISI
+          - name: SERVER_PORT
+            value: '8080'
+          resources: {}
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+  status: {}
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: formazione
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: formazione
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+      resources: {}
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - formazione
+        from:
+          kind: ImageStreamTag
+          name: digitalidentity:latest
+    replicas: 1
+    test: false
+    selector:
+      app: formazione
+      deploymentconfig: formazione
+    template:
+      metadata:
+        creationTimestamp: 
+        labels:
+          app: formazione
+          deploymentconfig: formazione
+        annotations:
+          openshift.io/container.formazione.image.entrypoint: '["container-entrypoint","/bin/sh","-c","$STI_SCRIPTS_PATH/usage"]'
+          openshift.io/generated-by: OpenShiftNewApp
+      spec:
+        containers:
+        - name: formazione
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+          - name: DB_POSTGRES_HOST
+            value: "${POSTGRES_HOST}"
+          - name: DB_POSTGRES_PORT
+            value: "${POSTGRES_PORT}"
+          - name: DB_POSTGRES_USER
+            value: "${POSTGRES_USER}"
+          - name: DB_POSTGRES_PASSWORD
+            value: "${POSTGRES_PWD}"
+          - name: DB_POSTGRES_DATABASE
+            value: "${POSTGRES_DB}"
+          - name: SCHEDULER_URL_RECUPERO_SEZIONE
+            value: "${URL_FORMAZIONE}"
+          - name: SCHEDULER_SEZIONE_DA_RECUPERARE
+            value: FORMAZIONE
+          - name: SERVER_PORT
+            value: '8080'
+          resources: {}
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+  status: {}
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: menuintranet
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: menuintranet
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+      resources: {}
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - menuintranet
+        from:
+          kind: ImageStreamTag
+          name: digitalidentity:latest
+    replicas: 1
+    test: false
+    selector:
+      app: menuintranet
+      deploymentconfig: menuintranet
+    template:
+      metadata:
+        creationTimestamp: 
+        labels:
+          app: menuintranet
+          deploymentconfig: menuintranet
+        annotations:
+          openshift.io/container.menuintranet.image.entrypoint: '["container-entrypoint","/bin/sh","-c","$STI_SCRIPTS_PATH/usage"]'
+          openshift.io/generated-by: OpenShiftNewApp
+      spec:
+        containers:
+        - name: menuintranet
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+          - name: DB_POSTGRES_HOST
+            value: "${POSTGRES_HOST}"
+          - name: DB_POSTGRES_PORT
+            value: "${POSTGRES_PORT}"
+          - name: DB_POSTGRES_USER
+            value: "${POSTGRES_USER}"
+          - name: DB_POSTGRES_PASSWORD
+            value: "${POSTGRES_PWD}"
+          - name: DB_POSTGRES_DATABASE
+            value: "${POSTGRES_DB}"
+          - name: SCHEDULER_URL_RECUPERO_SEZIONE
+            value: "${URL_MENUINTRANET}"
+          - name: SCHEDULER_SEZIONE_DA_RECUPERARE
+            value: MENUINTRANET
+          - name: SERVER_PORT
+            value: '8080'
+          resources: {}
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+  status: {}
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: postgres
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: postgres
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 30
+        maxUnavailable: 25%
+        maxSurge: 25%
+      resources: {}
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - postgres
+        from:
+          kind: ImageStreamTag
+          name: postgres:9.4
+    replicas: 1
+    test: false
+    selector:
+      app: postgres
+      deploymentconfig: postgres
+    template:
+      metadata:
+        creationTimestamp: 
+        labels:
+          app: postgres
+          deploymentconfig: postgres
+        annotations:
+          openshift.io/generated-by: OpenShiftWebConsole
+      spec:
+        volumes:
+        - name: postgres-1
+          emptyDir: {}
+        containers:
+        - name: postgres
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          env:
+          - name: POSTGRES_PASSWORD
+            value: "${POSTGRES_PWD}"
+          - name: POSTGRES_USER
+            value: "${POSTGRES_USER}"
+          - name: POSTGRES_DB
+            value: "${POSTGRES_DB}"
+          resources: {}
+          volumeMounts:
+          - name: postgres-1
+            mountPath: "/var/lib/postgresql/data"
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: IfNotPresent
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+  status: {}
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: apache
+    generation: 1
+    creationTimestamp: 
+    labels:
+      app: apache
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+      resources: {}
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - apache
+        from:
+          kind: ImageStreamTag
+          name: apache:latest
+    replicas: 1
+    test: false
+    selector:
+      app: apache
+      deploymentconfig: apache
+    template:
+      metadata:
+        creationTimestamp: 
+        labels:
+          app: apache
+          deploymentconfig: apache
+      spec:
+        containers:
+        - name: apache
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env: []
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          securityContext: {}
+  status: {}
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: header
+    creationTimestamp: 
+    labels:
+      app: header
+    annotations:
+      openshift.io/host.generated: 'true'
+  spec:
+    to:
+      kind: Service
+      name: header
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+    wildcardPolicy: None
+  status:
+    ingress:
+    - routerName: router
+      conditions:
+      - type: Admitted
+        status: 'True'
+        lastTransitionTime: '2017-06-23T15:48:17Z'
+      wildcardPolicy: None
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: header
+    creationTimestamp: 
+    labels:
+      app: header
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: header
+      deploymentconfig: header
+    type: ClusterIP
+    sessionAffinity: None
+  status:
+    loadBalancer: {}
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: footer
+    creationTimestamp: 
+    labels:
+      app: footer
+    annotations:
+      openshift.io/host.generated: 'true'
+  spec:
+    to:
+      kind: Service
+      name: footer
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+    wildcardPolicy: None
+  status:
+    ingress:
+    - routerName: router
+      conditions:
+      - type: Admitted
+        status: 'True'
+        lastTransitionTime: '2017-06-23T15:48:17Z'
+      wildcardPolicy: None
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: footer
+    creationTimestamp: 
+    labels:
+      app: footer
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: footer
+      deploymentconfig: footer
+    type: ClusterIP
+    sessionAffinity: None
+  status:
+    loadBalancer: {}
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: atti
+    creationTimestamp: 
+    labels:
+      app: atti
+    annotations:
+      openshift.io/host.generated: 'true'
+  spec:
+    to:
+      kind: Service
+      name: atti
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+    wildcardPolicy: None
+  status:
+    ingress:
+    - routerName: router
+      conditions:
+      - type: Admitted
+        status: 'True'
+        lastTransitionTime: '2017-06-23T15:48:17Z'
+      wildcardPolicy: None
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: atti
+    creationTimestamp: 
+    labels:
+      app: atti
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: atti
+      deploymentconfig: atti
+    type: ClusterIP
+    sessionAffinity: None
+  status:
+    loadBalancer: {}
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: newsavvisi
+    creationTimestamp: 
+    labels:
+      app: newsavvisi
+    annotations:
+      openshift.io/host.generated: 'true'
+  spec:
+    to:
+      kind: Service
+      name: newsavvisi
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+    wildcardPolicy: None
+  status:
+    ingress:
+    - routerName: router
+      conditions:
+      - type: Admitted
+        status: 'True'
+        lastTransitionTime: '2017-06-23T15:48:17Z'
+      wildcardPolicy: None
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: newsavvisi
+    creationTimestamp: 
+    labels:
+      app: newsavvisi
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: newsavvisi
+      deploymentconfig: newsavvisi
+    type: ClusterIP
+    sessionAffinity: None
+  status:
+    loadBalancer: {}
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: formazione
+    creationTimestamp: 
+    labels:
+      app: formazione
+    annotations:
+      openshift.io/host.generated: 'true'
+  spec:
+    to:
+      kind: Service
+      name: formazione
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+    wildcardPolicy: None
+  status:
+    ingress:
+    - routerName: router
+      conditions:
+      - type: Admitted
+        status: 'True'
+        lastTransitionTime: '2017-06-23T15:48:17Z'
+      wildcardPolicy: None
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: formazione
+    creationTimestamp: 
+    labels:
+      app: formazione
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: formazione
+      deploymentconfig: formazione
+    type: ClusterIP
+    sessionAffinity: None
+  status:
+    loadBalancer: {}
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: menuintranet
+    creationTimestamp: 
+    labels:
+      app: menuintranet
+    annotations:
+      openshift.io/host.generated: 'true'
+  spec:
+    to:
+      kind: Service
+      name: menuintranet
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+    wildcardPolicy: None
+  status:
+    ingress:
+    - routerName: router
+      conditions:
+      - type: Admitted
+        status: 'True'
+        lastTransitionTime: '2017-06-23T15:48:17Z'
+      wildcardPolicy: None
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: menuintranet
+    creationTimestamp: 
+    labels:
+      app: menuintranet
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: menuintranet
+      deploymentconfig: menuintranet
+    type: ClusterIP
+    sessionAffinity: None
+  status:
+    loadBalancer: {}
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: postgres
+    creationTimestamp: 
+    labels:
+      app: postgres
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+  spec:
+    ports:
+    - name: 5432-tcp
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+    selector:
+      deploymentconfig: postgres
+    type: ClusterIP
+    sessionAffinity: None
+  status:
+    loadBalancer: {}
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: apache
+    creationTimestamp: 
+    labels:
+      app: apache
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+  spec:
+    ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: apache
+      deploymentconfig: apache
+    type: ClusterIP
+    sessionAffinity: None
+  status:
+    loadBalancer: {}
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: apache
+    creationTimestamp: 
+    labels:
+      app: apache
+    annotations:
+      openshift.io/host.generated: 'true'
+  spec:
+    to:
+      kind: Service
+      name: apache
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+    wildcardPolicy: None
+  status:
+    ingress:
+    - routerName: router
+      conditions:
+      - type: Admitted
+        status: 'True'
+        lastTransitionTime: '2017-06-23T15:48:17Z'
+      wildcardPolicy: None
+- kind: "Service"
+  apiVersion: "v1"
+  metadata:
+      name: "external-rest-service"
+  spec:
+      ports:
+        -
+          name: "rest-services"
+          protocol: "TCP"
+          port: 8080
+          targetPort: 80
+          nodePort: 0
+  selector: {}
+- kind: "Endpoints"
+  apiVersion: "v1"
+  metadata:
+    name: "external-rest-service" 
+  subsets: 
+    -
+      addresses:
+        -
+          ip: "${IP_REST_ESTERNI}" 
+      ports:
+        -
+          port: 80 
+          name: "rest-services"
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: rest-services
+    creationTimestamp: 
+    labels:
+      app: rest-services
+    annotations:
+      openshift.io/host.generated: 'true'
+  spec:
+    to:
+      kind: Service
+      name: external-rest-service
+      weight: 100
+    port:
+      targetPort: rest-services
+    wildcardPolicy: None
+  status:
+    ingress:
+    - routerName: router
+      conditions:
+      - type: Admitted
+        status: 'True'
+        lastTransitionTime: '2017-06-23T15:48:17Z'
+      wildcardPolicy: None
+parameters:
+- name: POSTGRES_HOST
+  displayName: Host db Postgres
+  value: postgres
+  required: true
+- name: POSTGRES_PORT
+  displayName: Porta db Postgres
+  value: '5432'
+  required: true
+- name: POSTGRES_DB
+  displayName: Database Postgres
+  value: sections
+  required: true
+- name: POSTGRES_USER
+  displayName: Username Postgres
+  value: user
+  required: true
+- name: POSTGRES_PWD
+  displayName: Database Postgres
+  value: password
+  required: true
+- name: IP_REST_ESTERNI
+  displayName: IP servizi rest esterni
+  value: 10.9.8.7
+  required: false
+- name: URL_HEADER
+  displayName: Url recupero header
+  required: false
+- name: URL_FOOTER
+  displayName: Url recupero footer
+  required: false
+- name: URL_ATTI
+  displayName: Url recupero atti
+  required: false
+- name: URL_FORMAZIONE
+  displayName: Url recupero formazione
+  required: false
+- name: URL_NEWSEVENTI
+  displayName: Url recupero news ed Eventi
+  required: false
+- name: URL_MENUINTRANET
+  displayName: Url recupero menu intranet
+required: false
