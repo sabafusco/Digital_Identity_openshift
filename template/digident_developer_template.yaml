@@ -1178,23 +1178,22 @@ parameters:
   required: true
 - name: IP_REST_ESTERNI
   displayName: IP servizi rest esterni
-  value: 10.9.8.7
-  required: false
+  required: true
 - name: URL_HEADER
   displayName: Url recupero header
-  required: false
+  required: true
 - name: URL_FOOTER
   displayName: Url recupero footer
-  required: false
+  required: true
 - name: URL_ATTI
   displayName: Url recupero atti
-  required: false
+  required: true
 - name: URL_FORMAZIONE
   displayName: Url recupero formazione
-  required: false
+  required: true
 - name: URL_NEWSEVENTI
   displayName: Url recupero news ed Eventi
-  required: false
+  required: true
 - name: URL_MENUINTRANET
   displayName: Url recupero menu intranet
-required: false
+  required: true
