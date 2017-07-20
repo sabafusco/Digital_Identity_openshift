@@ -13,17 +13,17 @@ SERVICE_ACCOUNT_JENKINS='system:serviceaccount:dev-ops:jenkins'
 RUOLO_SERVICE_ACCOUNT='admin'
 
 # Progetto Sviluppo
-PRJ_NOME_SVIL='digident-sviluppo'
+PRJ_NOME_SVIL='digital-identity-sviluppo'
 PRJ_TITOLO_SVIL='Digital Identity - Sviluppo'
 PRJ_DESCRIZIONE_SVIL='Progetto Digital Identity ambiente di SVILUPPO'
 
 # Progetto Collaudo
-PRJ_NOME_COLL='digident-collaudo'
+PRJ_NOME_COLL='digital-identity-collaudo'
 PRJ_TITOLO_COLL='Digital Identity - Collaudo'
 PRJ_DESCRIZIONE_COLL='Progetto Digital Identity ambiente di COLLAUDO'
 
 # Progetto Produzione
-PRJ_NOME_PROD='digident-produzione'
+PRJ_NOME_PROD='digital-identity-produzione'
 PRJ_TITOLO_PROD='Digital Identity - Produzione'
 PRJ_DESCRIZIONE_PROD='Progetto Digital Identity ambiente di PRODUZIONE'
 
