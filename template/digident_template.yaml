@@ -1077,7 +1077,8 @@ objects:
     wildcardPolicy: None
   status:
     ingress:
-    - routerName: router
+    - host: openshift.test.inail.it
+      routerName: router
       conditions:
       - type: Admitted
         status: 'True'
