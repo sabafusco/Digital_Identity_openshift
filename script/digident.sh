@@ -41,6 +41,11 @@ DATA='date +%Y/%m/%d:%H:%M:%S'
 #    Parametri Template
 ####################################################
 
+#Route assegnata al progetto apache 
+HOSTNAME_APACHE_SVILUPPO=openshift.sviluppo.inail.it
+HOSTNAME_APACHE_COLLAUDO=openshift.collaudo.inail.it
+HOSTNAME_APACHE_PRODUZIONE=openshift.produzione.inail.it
+
 #Ip dei servizi rest esterni da invocare da sviluppo
 PARAM_IP_REST_ESTERNI_SVIL='192.168.13.73'
 
@@ -119,7 +124,7 @@ function assegna_ruolo_a_serviceaccount(){
 function attendi_condizione() {
         #$1 nome dell'applicazione da verificare usato solo per i log
         #$2 timeout in sec
-        #$3 comando per verificare se l'app è pronta 
+        #$3 comando per verificare se l'app ï¿½ pronta 
         local TIMEOUT=$(($2/5))
         local CONDIZIONE=$3
 
@@ -133,12 +138,12 @@ function attendi_condizione() {
           x=$(( $x + 1 ))
           if [ $x -gt $TIMEOUT ]
           then
-            echo_log "$1 non è pronto!"
+            echo_log "$1 non ï¿½ pronto!"
             exit 255
           fi
         done
 
-        echo_log "$1 è PRONTO."
+        echo_log "$1 ï¿½ PRONTO."
 }
 
 
@@ -159,7 +164,7 @@ sleep 5
 crea_progetto "$PRJ_NOME_SVIL" "$PRJ_TITOLO_SVIL" "$PRJ_DESCRIZIONE_SVIL"
 usa_progetto "$PRJ_NOME_SVIL"
 assegna_ruolo_a_serviceaccount $RUOLO_SERVICE_ACCOUNT $SERVICE_ACCOUNT_JENKINS
-deploy_template "$TEMPLATE_URI_DIGIDENT" "--param=IP_REST_ESTERNI=$PARAM_IP_REST_ESTERNI_SVIL --param=URL_HEADER=$PARAM_URL_HEADER_SVIL --param=URL_FOOTER=$PARAM_URL_FOOTER_SVIL --param=URL_ATTI=$PARAM_URL_ATTI_SVIL --param=URL_FORMAZIONE=$PARAM_URL_FORMAZIONE_SVIL --param=URL_NEWSEVENTI=$PARAM_URL_NEWSEVENTI_SVIL --param=URL_MENUINTRANET=$PARAM_URL_MENUINTRANET_SVIL"
+deploy_template "$TEMPLATE_URI_DIGIDENT" "--param=HOSTNAME_APACHE=$HOSTNAME_APACHE_SVILUPPO --param=IP_REST_ESTERNI=$PARAM_IP_REST_ESTERNI_SVIL --param=URL_HEADER=$PARAM_URL_HEADER_SVIL --param=URL_FOOTER=$PARAM_URL_FOOTER_SVIL --param=URL_ATTI=$PARAM_URL_ATTI_SVIL --param=URL_FORMAZIONE=$PARAM_URL_FORMAZIONE_SVIL --param=URL_NEWSEVENTI=$PARAM_URL_NEWSEVENTI_SVIL --param=URL_MENUINTRANET=$PARAM_URL_MENUINTRANET_SVIL"
 attendi_condizione "Ambiente sviluppo" 600 "oc get pods -n $PRJ_NOME_SVIL | grep 'postgres.*'"
 sleep 5
 
@@ -167,7 +172,7 @@ sleep 5
 crea_progetto "$PRJ_NOME_COLL" "$PRJ_TITOLO_COLL" "$PRJ_DESCRIZIONE_COLL"
 usa_progetto "$PRJ_NOME_COLL"
 assegna_ruolo_a_serviceaccount $RUOLO_SERVICE_ACCOUNT $SERVICE_ACCOUNT_JENKINS
-deploy_template "$TEMPLATE_URI_DIGIDENT" "--param=IP_REST_ESTERNI=$PARAM_IP_REST_ESTERNI_COLL --param=URL_HEADER=$PARAM_URL_HEADER_COLL --param=URL_FOOTER=$PARAM_URL_FOOTER_COLL --param=URL_ATTI=$PARAM_URL_ATTI_COLL --param=URL_FORMAZIONE=$PARAM_URL_FORMAZIONE_COLL --param=URL_NEWSEVENTI=$PARAM_URL_NEWSEVENTI_COLL --param=URL_MENUINTRANET=$PARAM_URL_MENUINTRANET_COLL"
+deploy_template "$TEMPLATE_URI_DIGIDENT" "--param=HOSTNAME_APACHE=$HOSTNAME_APACHE_COLLAUDO --param=IP_REST_ESTERNI=$PARAM_IP_REST_ESTERNI_COLL --param=URL_HEADER=$PARAM_URL_HEADER_COLL --param=URL_FOOTER=$PARAM_URL_FOOTER_COLL --param=URL_ATTI=$PARAM_URL_ATTI_COLL --param=URL_FORMAZIONE=$PARAM_URL_FORMAZIONE_COLL --param=URL_NEWSEVENTI=$PARAM_URL_NEWSEVENTI_COLL --param=URL_MENUINTRANET=$PARAM_URL_MENUINTRANET_COLL"
 attendi_condizione "Ambiente collaudo" 600 "oc get pods -n $PRJ_NOME_COLL | grep 'postgres.*'"
 sleep 5
 
@@ -175,7 +180,7 @@ sleep 5
 crea_progetto "$PRJ_NOME_PROD" "$PRJ_TITOLO_PROD" "$PRJ_DESCRIZIONE_PROD"
 usa_progetto "$PRJ_NOME_PROD"
 assegna_ruolo_a_serviceaccount $RUOLO_SERVICE_ACCOUNT $SERVICE_ACCOUNT_JENKINS
-deploy_template "$TEMPLATE_URI_DIGIDENT" "--param=IP_REST_ESTERNI=$PARAM_IP_REST_ESTERNI_PROD --param=URL_HEADER=$PARAM_URL_HEADER_PROD --param=URL_FOOTER=$PARAM_URL_FOOTER_PROD --param=URL_ATTI=$PARAM_URL_ATTI_PROD --param=URL_FORMAZIONE=$PARAM_URL_FORMAZIONE_PROD --param=URL_NEWSEVENTI=$PARAM_URL_NEWSEVENTI_PROD --param=URL_MENUINTRANET=$PARAM_URL_MENUINTRANET_PROD"
+deploy_template "$TEMPLATE_URI_DIGIDENT" "--param=HOSTNAME_APACHE=$HOSTNAME_APACHE_PRODUZIONE --param=IP_REST_ESTERNI=$PARAM_IP_REST_ESTERNI_PROD --param=URL_HEADER=$PARAM_URL_HEADER_PROD --param=URL_FOOTER=$PARAM_URL_FOOTER_PROD --param=URL_ATTI=$PARAM_URL_ATTI_PROD --param=URL_FORMAZIONE=$PARAM_URL_FORMAZIONE_PROD --param=URL_NEWSEVENTI=$PARAM_URL_NEWSEVENTI_PROD --param=URL_MENUINTRANET=$PARAM_URL_MENUINTRANET_PROD"
 attendi_condizione "Ambiente produzione" 600 "oc get pods -n $PRJ_NOME_PROD | grep 'postgres.*'"
 sleep 5
 

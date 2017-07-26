@@ -23,6 +23,9 @@ DATA='date +%Y/%m/%d:%H:%M:%S'
 #    Parametri Template
 ####################################################
 
+#Route hostname per il progetto apache
+HOSTNAME_APACHE_DEVELOPER=openshift.test.inail.it
+
 #Ip dei servizi rest esterni da invocare
 PARAM_IP_REST_ESTERNI='192.168.13.73'
 
@@ -80,7 +83,7 @@ sleep 5
 usa_progetto "$PRJ_NOME"
 sleep 5
 
-deploy_template "$TEMPLATE_URI" "--param=IP_REST_ESTERNI=$PARAM_IP_REST_ESTERNI --param=URL_HEADER=$PARAM_URL_HEADER --param=URL_FOOTER=$PARAM_URL_FOOTER --param=URL_ATTI=$PARAM_URL_ATTI --param=URL_FORMAZIONE=$PARAM_URL_FORMAZIONE --param=URL_NEWSEVENTI=$PARAM_URL_NEWSEVENTI --param=URL_MENUINTRANET=$PARAM_URL_MENUINTRANET"
+deploy_template "$TEMPLATE_URI" "--param=HOSTNAME_APACHE=$HOSTNAME_APACHE_DEVELOPER --param=IP_REST_ESTERNI=$PARAM_IP_REST_ESTERNI --param=URL_HEADER=$PARAM_URL_HEADER --param=URL_FOOTER=$PARAM_URL_FOOTER --param=URL_ATTI=$PARAM_URL_ATTI --param=URL_FORMAZIONE=$PARAM_URL_FORMAZIONE --param=URL_NEWSEVENTI=$PARAM_URL_NEWSEVENTI --param=URL_MENUINTRANET=$PARAM_URL_MENUINTRANET"
 sleep 5
 
 echo_log "****FINE SCRIPT****"
