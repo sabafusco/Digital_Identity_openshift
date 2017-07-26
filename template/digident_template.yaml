@@ -1178,3 +1178,5 @@ parameters:
 - name: URL_MENUINTRANET
   displayName: Url recupero menu intranet
   required: true
+- name: HOSTNAME_APACHE
+  displayName: Host name rotta progetto Apache
