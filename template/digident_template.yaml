@@ -1068,7 +1068,7 @@ objects:
     annotations:
       openshift.io/host.generated: 'true'
   spec:
-    host: ${HOSTNAME_APACHE}
+    host: "${HOSTNAME_APACHE}"
     to:
       kind: Service
       name: apache
@@ -1078,7 +1078,7 @@ objects:
     wildcardPolicy: None
   status:
     ingress:
-    - host: ${HOSTNAME_APACHE}
+    - host: "${HOSTNAME_APACHE}"
       routerName: router
       conditions:
       - type: Admitted
