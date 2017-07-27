@@ -228,6 +228,7 @@ objects:
       spec:
         containers:
         - name: header
+          image: digitalidentity:latest
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -303,6 +304,7 @@ objects:
       spec:
         containers:
         - name: footer
+          image: digitalidentity:latest
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -378,6 +380,7 @@ objects:
       spec:
         containers:
         - name: atti
+          image: digitalidentity:latest
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -453,6 +456,7 @@ objects:
       spec:
         containers:
         - name: newsavvisi
+          image: digitalidentity:latest
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -528,6 +532,7 @@ objects:
       spec:
         containers:
         - name: formazione
+          image: digitalidentity:latest
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -603,6 +608,7 @@ objects:
       spec:
         containers:
         - name: menuintranet
+          image: digitalidentity:latest
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -745,6 +751,7 @@ objects:
       spec:
         containers:
         - name: apache
+          image: apache:latest
           ports:
           - containerPort: 8080
             protocol: TCP
