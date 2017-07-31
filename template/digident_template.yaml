@@ -22,7 +22,7 @@ objects:
     runPolicy: Serial
     source:
       dockerfile: |-
-        FROM mavendigident:alpine
+        FROM digitalidentity:alpine
         RUN     printf "***Installazione git***" && \
                 apk update && apk add git
         RUN     printf "***Clone source***" && \
@@ -37,7 +37,7 @@ objects:
       dockerStrategy:
         from:
           kind: ImageStreamTag
-          name: mavendigident:alpine
+          name: digitalidentity:alpine
         noCache: true
       type: Docker
   status:
@@ -86,27 +86,6 @@ objects:
 - kind: ImageStream
   apiVersion: v1
   metadata:
-    name: digitalidentity
-    generation: 1
-    creationTimestamp: 
-    labels:
-      app: digitalidentity
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-  spec:
-    tags:
-    - name: latest
-      annotations: 
-      from:
-        kind: DockerImage
-        name: digitalidentity:latest
-      generation: 
-      importPolicy: {}
-  status:
-    dockerImageRepository: ''
-- kind: ImageStream
-  apiVersion: v1
-  metadata:
     name: postgres
     generation: 1
     creationTimestamp: 
@@ -128,7 +107,7 @@ objects:
 - kind: ImageStream
   apiVersion: v1
   metadata:
-    name: mavendigident
+    name: digitalidentity
     generation: 2
     creationTimestamp: 
     labels:
